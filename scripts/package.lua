@@ -118,7 +118,7 @@
 		for _, name in ipairs { ".hg", ".hgcheck" } do
 			os.rmdir(path.join(module, name))
 		end
-		for _, name in ipairs { ".DS_Store", ".gitignore", ".hgignore", ".hgsub*", ".hgtags" } do
+		for _, name in ipairs { ".DS_Store", ".gitignore", ".hgignore", ".hgsub*", ".hgtags", ".editorconfig" } do
 			os.remove(path.join(module, name))
 		end
 	end
