@@ -928,6 +928,17 @@
 	}
 
 	api.register {
+		name = "linkmode",
+		scope = "config",
+		kind = "string",
+		allowed = {
+			"Default",
+			"Absolute",
+			"System",
+		},
+	}
+
+	api.register {
 		name = "rules",
 		scope = "project",
 		kind = "list:string",
@@ -1294,6 +1305,14 @@
 		rtti "On"
 	end)
 
+	api.deprecateValue("flags", "RelativeLinks", 'Use `linkmode "System"` instead',
+	function(value)
+		linkmode "System"
+	end,
+	function(value)
+		linkmode "Default"
+	end)
+
 	api.deprecateValue("flags", "SEH", 'Use `exceptionhandling "SEH"` instead',
 	function(value)
 		exceptionhandling "SEH"
@@ -1441,6 +1460,7 @@
 	clr "Off"
 	editorintegration "Off"
 	exceptionhandling "Default"
+	linkmode "Default"
 	rtti "Default"
 	symbols "Default"
 

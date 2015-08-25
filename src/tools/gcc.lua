@@ -68,6 +68,8 @@
 		pic = {
 			On = "-fPIC",
 		},
+		linkmode = {
+		},
 		vectorextensions = {
 			AVX = "-mavx",
 			AVX2 = "-mavx2",
@@ -214,12 +216,14 @@
 		end
 
 		-- Automatically add linked shared libraries path relative to target directory
-		for _, sibling in ipairs(config.getlinks(cfg, "siblings", "object")) do
-			if (sibling.kind == premake.SHAREDLIB) then
-				local fullpath = sibling.linktarget.directory
-				local rpath = path.getrelative(cfg.buildtarget.directory, fullpath)
-				if not (table.contains(rpaths, rpath)) then
-					table.insert(rpaths, rpath)
+		if cfg.linkmode == premake.DEFAULT then
+			for _, sibling in ipairs(config.getlinks(cfg, "siblings", "object")) do
+				if (sibling.kind == premake.SHAREDLIB) and (sibling.linkmode == premake.DEFAULT) then
+					local fullpath = sibling.linktarget.directory
+					local rpath = path.getrelative(cfg.buildtarget.directory, fullpath)
+					if not (table.contains(rpaths, rpath)) then
+						table.insert(rpaths, rpath)
+					end
 				end
 			end
 		end
@@ -260,10 +264,18 @@
 				local r = { iif(cfg.system == premake.MACOSX, "-dynamiclib", "-shared") }
 				if cfg.system == premake.WINDOWS and not cfg.flags.NoImportLib then
 					table.insert(r, '-Wl,--out-implib="' .. cfg.linktarget.relpath .. '"')
-				elseif cfg.system == premake.LINUX then
-					table.insert(r, '-Wl,-soname=' .. premake.quoted(cfg.linktarget.name))
-				elseif cfg.system == premake.MACOSX then
-					table.insert(r, '-Wl,-install_name,' .. premake.quoted('@rpath/' .. cfg.linktarget.name))
+				end
+				if cfg.linkmode == premake.DEFAULT then
+					if cfg.system == premake.LINUX then
+						table.insert(r, '-Wl,-soname=' .. premake.quoted(cfg.linktarget.name))
+					elseif cfg.system == premake.MACOSX then
+						table.insert(r, '-Wl,-install_name,' .. premake.quoted('@rpath/' .. cfg.linktarget.name))
+					end
+				else
+					-- Force installname to something that could work at run-time 
+					if cfg.system == premake.MACOSX then
+						table.insert(r, '-Wl,-install_name,' .. premake.quoted(cfg.linktarget.fullpath))
+					end
 				end
 				return r
 			end,
@@ -311,11 +323,21 @@
 			table.insert(flags, '-L' .. premake.quoted(dir))
 		end
 
-		if cfg.flags.RelativeLinks then
+		if (cfg.linkmode == "System") then
 			for _, dir in ipairs(config.getlinks(cfg, "siblings", "directory")) do
-				local libFlag = "-L" .. premake.project.getrelative(cfg.project, dir)
+				local libFlag = "-L" .. premake.quoted(premake.project.getrelative(cfg.project, dir))
 				if not table.contains(flags, libFlag) then
 					table.insert(flags, libFlag)
+				end
+			end
+		else
+			-- Per sibling case
+			for _, sibling in ipairs(config.getlinks(cfg, "siblings", "object")) do
+				if sibling.linkmode == "System" then
+					local libFlag = "-L" .. premake.quoted(premake.project.getrelative(cfg.project, sibling.linktarget.directory))
+					if not table.contains(flags, libFlag) then
+						table.insert(flags, libFlag)
+					end
 				end
 			end
 		end
@@ -337,19 +359,28 @@
 		local result = {}
 
 		if not systemonly then
-			if cfg.flags.RelativeLinks then
-				local libFiles = config.getlinks(cfg, "siblings", "basename")
-				for _, link in ipairs(libFiles) do
-					if string.startswith(link, "lib") then
-						link = link:sub(4)
-					end
-					table.insert(result, "-l" .. link)
+			local siblings = config.getlinks(cfg, "siblings", "object")
+			if cfg.linkmode == "System" then
+				-- Use relative links for all
+				for _, sibling in ipairs(siblings) do
+					table.insert(result, '-l' .. sibling.linktarget.basename)
+				end
+			elseif cfg.linkmode == "Absolute" then
+				-- Use absolute path for all
+				for _, sibling in ipairs(siblings) do
+					table.insert(result, sibling.linktarget.fullpath)
 				end
 			else
-				-- Don't use the -l form for sibling libraries, since they may have
-				-- custom prefixes or extensions that will confuse the linker. Instead
-				-- just list out the full relative path to the library.
-				result = config.getlinks(cfg, "siblings", "fullpath")
+				-- Per-sibling linkmode case
+				for _, sibling in ipairs(siblings) do
+					if sibling.linkmode == "System" then
+						table.insert(result, '-l' .. sibling.linktarget.basename)
+					elseif sibling.linkmode == "Absolute" then
+						table.insert(result, sibling.linktarget.fullpath)
+					else
+						table.insert(result, project.getrelative(cfg.project, sibling.linktarget.fullpath)) 
+					end
+				end
 			end
 		end
 

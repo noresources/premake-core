@@ -179,7 +179,6 @@
 --
 
 	function make.list(value, quoted)
-		quoted = false
 		if #value > 0 then
 			if quoted then
 				local result = ""
