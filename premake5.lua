@@ -94,6 +94,9 @@
 			buildoptions { "-mmacosx-version-min=10.4" }
 			linkoptions  { "-mmacosx-version-min=10.4" }
 
+		configuration "vs*"
+			defines     { "_CRT_SECURE_NO_WARNINGS", "_CRT_NONSTDC_NO_WARNINGS" }
+
 	project "Premake5"
 		targetname  "premake5"
 		language    "C"
@@ -117,7 +120,6 @@
 		{
 			"*.txt", "**.lua",
 			"src/**.h", "src/**.c",
-			"src/host/scripts.c"
 		}
 
 		excludes
@@ -141,9 +143,6 @@
 			targetdir   "bin/release"
 			defines     "NDEBUG"
 			flags       { "OptimizeSize" }
-
-		configuration "vs*"
-			defines     { "_CRT_SECURE_NO_WARNINGS", "_CRT_NONSTDC_NO_WARNINGS" }
 
 		configuration "vs2005"
 			defines	{"_CRT_SECURE_NO_DEPRECATE" }
