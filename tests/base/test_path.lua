@@ -44,6 +44,10 @@
 		test.isequal("$(HOME)/user", path.getabsolute("$(HOME)/user"))
 	end
 
+	function suite.getabsolute_onLeadingEnvVar_dosStyle()
+		test.isequal("%HOME%/user", path.getabsolute("%HOME%/user"))
+	end
+
 	function suite.getabsolute_onMultipleEnvVar()
 		test.isequal("$(HOME)/$(USER)", path.getabsolute("$(HOME)/$(USER)"))
 	end
@@ -234,8 +238,28 @@
 		test.isfalse(path.isabsolute("a/b/c"))
 	end
 
-	function suite.isabsolute_ReturnsTrue_OnDollarSign()
+	function suite.isabsolute_ReturnsTrue_OnDollarToken()
 		test.istrue(path.isabsolute("$(SDK_HOME)/include"))
+	end
+
+	function suite.isabsolute_ReturnsTrue_OnJustADollarSign()
+		test.istrue(path.isabsolute("$foo/include"))
+	end
+
+	function suite.isabsolute_ReturnsFalse_OnIncompleteDollarToken()
+		test.isfalse(path.isabsolute("$(foo/include"))
+	end
+
+	function suite.isabsolute_ReturnsTrue_OnEnvVar()
+		test.istrue(path.isabsolute("%FOO%/include"))
+	end
+
+	function suite.isabsolute_ReturnsFalse_OnEmptyEnvVar()
+		test.isfalse(path.isabsolute("%%/include"))
+	end
+
+	function suite.isabsolute_ReturnsFalse_OnToken()
+		test.isfalse(path.isabsolute("%{foo}/include"))
 	end
 
 
@@ -335,6 +359,21 @@
 		test.isequal("p1/./../p2", path.join("p1/.", "../p2"))
 	end
 
+	function suite.join_absolute_second_part()
+		test.isequal("$ORIGIN", path.join("foo/bar", "$ORIGIN"))
+	end
+
+	function suite.join_absolute_second_part1()
+		test.isequal("$(FOO)/bar", path.join("foo/bar", "$(FOO)/bar"))
+	end
+
+	function suite.join_absolute_second_part2()
+		test.isequal("%ROOT%/foo", path.join("foo/bar", "%ROOT%/foo"))
+	end
+
+	function suite.join_token_in_second_part()
+		test.isequal("foo/bar/%{test}/foo", path.join("foo/bar", "%{test}/foo"))
+	end
 
 --
 -- path.rebase() tests
@@ -437,7 +476,7 @@
 		local p = path.normalize("../../../test/*.h")
 		test.isequal("../../../test/*.h", p)
 	end
-	
+
 	function suite.normalize_Test5()
 		test.isequal("test", path.normalize("./test"))
 		test.isequal("d:/", path.normalize("d:/"))
@@ -465,11 +504,11 @@
 		test.isequal("d:/ProjectB/bin", path.normalize("d:/ProjectA/../ProjectB/bin"))
 		test.isequal("/ProjectB/bin", path.normalize("/ProjectA/../ProjectB/bin"))
 	end
-	
+
 	function suite.normalize_leadingWhitespaces()
 		test.isequal("d:/game", path.normalize("\t\n d:/game"))
 	end
-	
+
 	function suite.normalize_multPath()
 		test.isequal("../a/b ../c/d", path.normalize("../a/b ../c/d"))
 		test.isequal("d:/test ../a/b", path.normalize("d:/game/../test ../a/b"))

@@ -24,7 +24,7 @@
 	end
 
 	local function prepare()
-		sln2005.NestedProjects(wks)
+		sln2005.nestedProjects(wks)
 	end
 
 
@@ -49,7 +49,7 @@
 		project "MyProject2"
 		prepare()
 		test.capture [[
-	GlobalSection(NestedProjects) = preSolution
+GlobalSection(NestedProjects) = preSolution
 		]]
 	end
 
@@ -63,9 +63,9 @@
 		project "MyProject"
 		prepare()
 		test.capture [[
-	GlobalSection(NestedProjects) = preSolution
-		{42B5DBC6-AE1F-903D-F75D-41E363076E92} = {0B5CD40C-7770-FCBD-40F2-9F1DACC5F8EE}
-	EndGlobalSection
+GlobalSection(NestedProjects) = preSolution
+	{42B5DBC6-AE1F-903D-F75D-41E363076E92} = {D2C41116-3E7A-8A0B-C76E-84E23323810F}
+EndGlobalSection
 		]]
 	end
 
@@ -79,10 +79,10 @@
 		project "MyProject"
 		prepare()
 		test.capture [[
-	GlobalSection(NestedProjects) = preSolution
-		{96080FE9-82C0-5036-EBC7-2992D79EEB26} = {0B5CD40C-7770-FCBD-40F2-9F1DACC5F8EE}
-		{42B5DBC6-AE1F-903D-F75D-41E363076E92} = {96080FE9-82C0-5036-EBC7-2992D79EEB26}
-	EndGlobalSection
+GlobalSection(NestedProjects) = preSolution
+	{BD0520A9-A9FE-3EFB-D230-2480BE881E07} = {D2C41116-3E7A-8A0B-C76E-84E23323810F}
+	{42B5DBC6-AE1F-903D-F75D-41E363076E92} = {BD0520A9-A9FE-3EFB-D230-2480BE881E07}
+EndGlobalSection
 		]]
 	end
 
@@ -97,8 +97,8 @@
 		project "MyProject2"
 		prepare()
 		test.capture [[
-	GlobalSection(NestedProjects) = preSolution
-		{42B5DBC6-AE1F-903D-F75D-41E363076E92} = {0B5CD40C-7770-FCBD-40F2-9F1DACC5F8EE}
-	EndGlobalSection
+GlobalSection(NestedProjects) = preSolution
+	{42B5DBC6-AE1F-903D-F75D-41E363076E92} = {D2C41116-3E7A-8A0B-C76E-84E23323810F}
+EndGlobalSection
 		]]
 	end

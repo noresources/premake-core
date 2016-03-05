@@ -78,6 +78,12 @@
 	}
 
 	api.register {
+		name = "buildcustomizations",
+		scope = "project",
+		kind = "list:string",
+	}
+
+	api.register {
 		name = "builddependencies",
 		scope = { "rule" },
 		kind = "list:string",
@@ -130,6 +136,17 @@
 		scope = "config",
 		kind = "table",
 		tokens = true,
+	}
+
+	api.register {
+		name = "characterset",
+		scope = "config",
+		kind = "string",
+		allowed = {
+			"Default",
+			"MBCS",
+			"Unicode",
+		}
 	}
 
 	api.register {
@@ -474,7 +491,7 @@
 			"StaticRuntime",
 			"Symbols",
 			"UndefinedIdentifiers",
-			"Unicode",
+			"Unicode",             -- DEPRECATED
 			"Unsafe",              -- DEPRECATED
 			"WinMain",
 			"WPF",
@@ -666,6 +683,13 @@
 
 	api.register {
 		name = "libdirs",
+		scope = "config",
+		kind = "list:directory",
+		tokens = true,
+	}
+
+	api.register {
+		name = "frameworkdirs",
 		scope = "config",
 		kind = "list:directory",
 		tokens = true,
@@ -1066,6 +1090,12 @@
 		kind = "boolean",
 	}
 
+	api.register {
+		name = "editorintegration",
+		scope = "workspace",
+		kind = "boolean",
+	}
+
 -----------------------------------------------------------------------------
 --
 -- Field name aliases for backward compatibility
@@ -1230,6 +1260,16 @@
 		clr "On"
 	end)
 
+	-- 18 Dec 2015
+
+	api.deprecateValue("flags", "Unicode", nil,
+	function(value)
+		characterset "Unicode"
+	end,
+	function(value)
+		characterset "Default"
+	end)
+
 
 
 -----------------------------------------------------------------------------
@@ -1337,7 +1377,9 @@
 --
 -----------------------------------------------------------------------------
 
+	characterset "Default"
 	clr "Off"
+	editorintegration "Off"
 	exceptionhandling "Default"
 	rtti "Default"
 

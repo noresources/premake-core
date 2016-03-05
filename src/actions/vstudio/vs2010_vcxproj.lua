@@ -371,11 +371,17 @@
 --
 
 	m.elements.linker = function(cfg, explicit)
-		return {
-			m.link,
-			m.lib,
-			m.linkLibraryDependencies,
-		}
+		if cfg.kind == p.STATICLIB then
+			return {
+				m.lib,
+				m.linkLibraryDependencies,
+			}
+		else
+			return {
+				m.link,
+				m.linkLibraryDependencies,
+			}
+		end
 	end
 
 	function m.linker(cfg)
@@ -386,29 +392,22 @@
 
 
 	m.elements.link = function(cfg, explicit)
-		if cfg.kind == p.STATICLIB then
-			return {
-				m.subSystem,
-				m.generateDebugInformation,
-				m.optimizeReferences,
-			}
-		else
-			return {
-				m.subSystem,
-				m.generateDebugInformation,
-				m.optimizeReferences,
-				m.additionalDependencies,
-				m.additionalLibraryDirectories,
-				m.importLibrary,
-				m.entryPointSymbol,
-				m.generateMapFile,
-				m.moduleDefinitionFile,
-				m.treatLinkerWarningAsErrors,
-				m.ignoreDefaultLibraries,
-				m.largeAddressAware,
-				m.additionalLinkOptions,
-			}
-		end
+		return {
+			m.subSystem,
+			m.generateDebugInformation,
+			m.optimizeReferences,
+			m.additionalDependencies,
+			m.additionalLibraryDirectories,
+			m.importLibrary,
+			m.entryPointSymbol,
+			m.generateMapFile,
+			m.moduleDefinitionFile,
+			m.treatLinkerWarningAsErrors,
+			m.ignoreDefaultLibraries,
+			m.largeAddressAware,
+			m.targetMachine,
+			m.additionalLinkOptions,
+		}
 	end
 
 	function m.link(cfg, explicit)
@@ -427,14 +426,13 @@
 
 
 	m.elements.lib = function(cfg, explicit)
-		if cfg.kind == p.STATICLIB then
-			return {
-				m.treatLinkerWarningAsErrors,
-				m.additionalLinkOptions,
-			}
-		else
-			return {}
-		end
+		return {
+			m.subSystem,
+			m.optimizeReferences,
+			m.treatLinkerWarningAsErrors,
+			m.targetMachine,
+			m.additionalLinkOptions,
+		}
 	end
 
 	function m.lib(cfg, explicit)
@@ -1016,7 +1014,7 @@
 
 	function m.characterSet(cfg)
 		if not vstudio.isMakefile(cfg) then
-			m.element("CharacterSet", nil, iif(cfg.flags.Unicode, "Unicode", "MultiByte"))
+			m.element("CharacterSet", nil, iif(cfg.characterset == p.MBCS, "MultiByte", "Unicode"))
 		end
 	end
 
@@ -1311,6 +1309,7 @@
 	m.elements.importExtensionTargets = function(prj)
 		return {
 			m.importRuleTargets,
+			m.importBuildCustomizationsTargets
 		}
 	end
 
@@ -1328,6 +1327,12 @@
 		end
 	end
 
+	function m.importBuildCustomizationsTargets(prj)
+		for i, build in ipairs(prj.buildcustomizations) do
+	      premake.w('<Import Project="$(VCTargetsPath)\\%s.targets" />', path.translate(build))
+	   end
+	end
+
 
 
 	function m.importDefaultProps(prj)
@@ -1343,6 +1348,7 @@
 	m.elements.importExtensionSettings = function(prj)
 		return {
 			m.importRuleSettings,
+			m.importBuildCustomizationsProps
 		}
 	end
 
@@ -1358,6 +1364,12 @@
 			local loc = vstudio.path(prj, p.filename(rule, ".props"))
 			p.x('<Import Project="%s" />', loc)
 		end
+	end
+
+	function m.importBuildCustomizationsProps(prj)
+		for i, build in ipairs(prj.buildcustomizations) do
+	      premake.w('<Import Project="$(VCTargetsPath)\\%s.props" />', path.translate(build))
+	   end
 	end
 
 
@@ -1761,6 +1773,22 @@
 		else
 			p.w('<TargetExt>')
 			p.w('</TargetExt>')
+		end
+	end
+
+
+	function m.targetMachine(cfg)
+		-- If a static library project contains a resource file, VS will choke with
+		-- "LINK : warning LNK4068: /MACHINE not specified; defaulting to X86"
+		local targetmachine = {
+			x86 = "MachineX86",
+			x86_64 = "MachineX64",
+		}
+		if cfg.kind == p.STATICLIB and config.hasFile(cfg, path.isresourcefile) then
+			local value = targetmachine[cfg.architecture]
+			if value ~= nil then
+				m.element("TargetMachine", nil, '%s', value)
+			end
 		end
 	end
 
