@@ -165,6 +165,18 @@
 				if cfg.system == "windows" and not cfg.flags.NoImportLib then
 					table.insert(r, '-Wl,--out-implib="' .. cfg.linktarget.relpath .. '"')
 				end
+				if cfg.linkmode == premake.DEFAULT then
+					if cfg.system == premake.LINUX then
+						table.insert(r, '-Wl,-soname=' .. premake.quoted(cfg.linktarget.name))
+					elseif cfg.system == premake.MACOSX then
+						table.insert(r, '-Wl,-install_name,' .. premake.quoted('@rpath/' .. cfg.linktarget.name))
+					end
+				else
+					-- Force installname to something that could work at run-time 
+					if cfg.system == premake.MACOSX then
+						table.insert(r, '-Wl,-install_name,' .. premake.quoted(cfg.linktarget.fullpath))
+					end
+				end
 				return r
 			end,
 			WindowedApp = function(cfg)

@@ -214,9 +214,9 @@
 		end
 
 		-- Automatically add linked shared libraries path relative to target directory
-		if cfg.linkmode == p.DEFAULT then
+		if cfg.linkmode == premake.DEFAULT then
 			for _, sibling in ipairs(config.getlinks(cfg, "siblings", "object")) do
-				if (sibling.kind == premake.SHAREDLIB) and (sibling.linkmode == p.DEFAULT) then
+				if (sibling.kind == premake.SHAREDLIB) and (sibling.linkmode == premake.DEFAULT) then
 					local fullpath = sibling.linktarget.directory
 					local rpath = path.getrelative(cfg.buildtarget.directory, fullpath)
 					if not (table.contains(rpaths, rpath)) then
@@ -262,7 +262,7 @@
 				if cfg.system == premake.WINDOWS and not cfg.flags.NoImportLib then
 					table.insert(r, '-Wl,--out-implib="' .. cfg.linktarget.relpath .. '"')
 				end
-				if cfg.linkmode == p.DEFAULT then
+				if cfg.linkmode == premake.DEFAULT then
 					if cfg.system == premake.LINUX then
 						table.insert(r, '-Wl,-soname=' .. premake.quoted(cfg.linktarget.name))
 					elseif cfg.system == premake.MACOSX then
