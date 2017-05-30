@@ -24,7 +24,7 @@
 		valid_kinds     = { "ConsoleApp", "WindowedApp", "Makefile", "SharedLib", "StaticLib" },
 		valid_languages = { "C", "C++" },
 		valid_tools     = {
-		    cc = { "gcc", "clang", "msc" }
+			cc = { "gcc", "clang", "msc" }
 		},
 
 		-- Workspace and project generation logic

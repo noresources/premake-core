@@ -4,9 +4,9 @@
 -- Copyright (c) 2009-2015 Jason Perkins and the Premake project
 --
 
-	premake.vstudio.vc2010 = {}
-
 	local p = premake
+	p.vstudio.vc2010 = {}
+
 	local vstudio = p.vstudio
 	local project = p.project
 	local config = p.config
@@ -17,7 +17,7 @@
 
 
 ---
--- Add namespace for element definition lists for premake.callArray()
+-- Add namespace for element definition lists for p.callArray()
 ---
 
 	m.elements = {}
@@ -159,6 +159,7 @@
 				m.platformToolset,
 				m.wholeProgramOptimization,
 				m.nmakeOutDirs,
+				m.windowsSDKDesktopARMSupport,
 			}
 		end
 	end
@@ -335,6 +336,7 @@
 			m.bufferSecurityCheck,
 			m.treatWChar_tAsBuiltInType,
 			m.floatingPointModel,
+			m.floatingPointExceptions,
 			m.inlineFunctionExpansion,
 			m.enableEnhancedInstructionSet,
 			m.multiProcessorCompilation,
@@ -509,7 +511,7 @@
 			local msg = cfg[field .. "message"]
 
 			if #steps > 0 then
-				steps = os.translateCommands(steps, p.WINDOWS)
+				steps = os.translateCommandsAndPaths(steps, cfg.project.basedir, cfg.project.location)
 				p.push('<%s>', name)
 				p.x('<Command>%s</Command>', table.implode(steps, "", "", "\r\n"))
 				if msg then
@@ -623,7 +625,7 @@
 ---
 	m.categories.ClInclude = {
 		name       = "ClInclude",
-		extensions = { ".h", ".hh", ".hpp", ".hxx" },
+		extensions = { ".h", ".hh", ".hpp", ".hxx", ".inl" },
 		priority   = 1,
 
 		emitFiles = function(prj, group)
@@ -658,7 +660,10 @@
 						m.enableEnhancedInstructionSet,
 						m.additionalCompileOptions,
 						m.disableSpecificWarnings,
-						m.treatSpecificWarningsAsErrors
+						m.treatSpecificWarningsAsErrors,
+						m.basicRuntimeChecks,
+						m.exceptionHandling,
+						m.compileAsManaged,
 					}
 				else
 					return {
@@ -960,13 +965,34 @@
 	end
 
 
+	function m.isClrMixed(prj)
+		-- check to see if any files are marked with clr
+		local isMixed = false
+		if not prj.clr or prj.clr == p.OFF then
+			if prj._isClrMixed ~= nil then
+				isMixed = prj._isClrMixed
+			else
+				table.foreachi(prj._.files, function(file)
+					for cfg in p.project.eachconfig(prj) do
+						local fcfg = p.fileconfig.getconfig(file, cfg)
+						if fcfg and fcfg.clr and fcfg.clr ~= p.OFF then
+							isMixed = true
+						end
+					end
+				end)
+				prj._isClrMixed = isMixed -- cache the results
+			end
+		end
+		return isMixed
+	end
+
 
 --
 -- Generate the list of project dependencies.
 --
 
 	m.elements.projectReferences = function(prj, ref)
-		if prj.clr ~= p.OFF then
+		if prj.clr ~= p.OFF or (m.isClrMixed(prj) and ref and ref.kind ~=p.STATICLIB) then
 			return {
 				m.referenceProject,
 				m.referencePrivate,
@@ -1074,10 +1100,24 @@
 	end
 
 
-	function m.basicRuntimeChecks(cfg)
-		local runtime = config.getruntime(cfg)
-		if cfg.flags.NoRuntimeChecks or (config.isOptimizedBuild(cfg) and runtime:endswith("Debug")) then
-			m.element("BasicRuntimeChecks", nil, "Default")
+	function m.compileAsManaged(fcfg, condition)
+		if fcfg.clr and fcfg ~= p.OFF then
+			m.element("CompileAsManaged", condition, "true")
+		end
+	end
+
+
+	function m.basicRuntimeChecks(cfg, condition)
+		local prjcfg, filecfg = p.config.normalize(cfg)
+		local runtime = config.getruntime(prjcfg)
+		if filecfg then
+			if filecfg.flags.NoRuntimeChecks or (config.isOptimizedBuild(filecfg) and runtime:endswith("Debug")) then
+				m.element("BasicRuntimeChecks", condition, "Default")
+			end
+		else
+			if prjcfg.flags.NoRuntimeChecks or (config.isOptimizedBuild(prjcfg) and runtime:endswith("Debug")) then
+				m.element("BasicRuntimeChecks", nil, "Default")
+			end
 		end
 	end
 
@@ -1091,7 +1131,7 @@
 
 
 	function m.buildCommands(fcfg, condition)
-		local commands = os.translateCommands(fcfg.buildcommands, p.WINDOWS)
+		local commands = os.translateCommandsAndPaths(fcfg.buildcommands, fcfg.project.basedir, fcfg.project.location)
 		commands = table.concat(commands,'\r\n')
 		m.element("Command", condition, '%s', commands)
 	end
@@ -1149,7 +1189,11 @@
 
 
 	function m.clCompilePreprocessorDefinitions(cfg, condition)
-		m.preprocessorDefinitions(cfg, cfg.defines, false, condition)
+		local defines = cfg.defines
+		if cfg.exceptionhandling == p.OFF and _ACTION >= "vs2013" then
+			defines = table.join(defines, "_HAS_EXCEPTIONS=0")
+		end
+		m.preprocessorDefinitions(cfg, defines, false, condition)
 	end
 
 
@@ -1172,8 +1216,10 @@
 
 
 	function m.compileAs(cfg)
-		if cfg.project.language == "C" then
+		if p.languages.isc(cfg.compileas) then
 			m.element("CompileAs", nil, "CompileAsC")
+		elseif p.languages.iscpp(cfg.compileas) then
+			m.element("CompileAs", nil, "CompileAsCpp")
 		end
 	end
 
@@ -1219,7 +1265,14 @@
 
 			m.element("DebugInformationFormat", nil, value)
 		elseif cfg.symbols == p.OFF then
-			m.element("DebugInformationFormat", nil, "None")
+			-- leave field blank for vs2013 and older to workaround bug
+			if _ACTION < "vs2015" then
+				value = ""
+			else
+				value = "None"
+			end
+
+			m.element("DebugInformationFormat", nil, value)
 		end
 	end
 
@@ -1260,24 +1313,15 @@
 	function m.entryPointSymbol(cfg)
 		if cfg.entrypoint then
 			m.element("EntryPointSymbol", nil, cfg.entrypoint)
-		else
-			if (cfg.kind == premake.CONSOLEAPP or cfg.kind == premake.WINDOWEDAPP) and
-				not cfg.flags.WinMain and
-				cfg.clr == p.OFF and
-				cfg.system ~= p.XBOX360
-			then
-				m.element("EntryPointSymbol", nil, "mainCRTStartup")
-			end
 		end
 	end
 
 
-	function m.exceptionHandling(cfg)
-		local value
+	function m.exceptionHandling(cfg, condition)
 		if cfg.exceptionhandling == p.OFF then
-			m.element("ExceptionHandling", nil, "false")
+			m.element("ExceptionHandling", condition, "false")
 		elseif cfg.exceptionhandling == "SEH" then
-			m.element("ExceptionHandling", nil, "Async")
+			m.element("ExceptionHandling", condition, "Async")
 		end
 	end
 
@@ -1303,8 +1347,19 @@
 
 
 	function m.floatingPointModel(cfg)
-		if cfg.floatingpoint then
+		if cfg.floatingpoint and cfg.floatingpoint ~= "Default" then
 			m.element("FloatingPointModel", nil, cfg.floatingpoint)
+		end
+	end
+
+
+	function m.floatingPointExceptions(cfg)
+		if cfg.floatingpointexceptions ~= nil then
+			if cfg.floatingpointexceptions then
+				m.element("FloatingPointExceptions", nil, "true")
+			else
+				m.element("FloatingPointExceptions", nil, "false")
+			end
 		end
 	end
 
@@ -1346,7 +1401,13 @@
 
 
 	function m.functionLevelLinking(cfg)
-		if config.isOptimizedBuild(cfg) then
+		if cfg.functionlevellinking ~= nil then
+			if cfg.functionlevellinking then
+				m.element("FunctionLevelLinking", nil, "true")
+			else
+				m.element("FunctionLevelLinking", nil, "false")
+			end
+		elseif config.isOptimizedBuild(cfg) then
 			m.element("FunctionLevelLinking", nil, "true")
 		end
 	end
@@ -1354,14 +1415,21 @@
 
 	function m.generateDebugInformation(cfg)
 		local lookup = {}
-		if _ACTION >= "vs2015" then
+		if _ACTION >= "vs2017" then
 			lookup[p.ON]       = "true"
 			lookup[p.OFF]      = "false"
 			lookup["FastLink"] = "DebugFastLink"
+			lookup["Full"]     = "DebugFull"
+		elseif _ACTION == "vs2015" then
+			lookup[p.ON]       = "true"
+			lookup[p.OFF]      = "false"
+			lookup["FastLink"] = "DebugFastLink"
+			lookup["Full"]     = "true"
 		else
 			lookup[p.ON]       = "true"
 			lookup[p.OFF]      = "false"
 			lookup["FastLink"] = "true"
+			lookup["Full"]     = "true"
 		end
 
 		local value = lookup[cfg.symbols]
@@ -1479,7 +1547,8 @@
 	end
 
 	local function nuGetTargetsFile(prj, package)
-		return p.vstudio.path(prj, p.filename(prj.solution, string.format("packages\\%s\\build\\native\\%s.targets", vstudio.nuget2010.packageName(package), vstudio.nuget2010.packageId(package))))
+		local packageAPIInfo = vstudio.nuget2010.packageAPIInfo(prj, package)
+		return p.vstudio.path(prj, p.filename(prj.solution, string.format("packages\\%s.%s\\build\\native\\%s.targets", vstudio.nuget2010.packageId(package), packageAPIInfo.verbatimVersion or packageAPIInfo.version, vstudio.nuget2010.packageId(package))))
 	end
 
 	function m.importNuGetTargets(prj)
@@ -1588,11 +1657,16 @@
 
 
 	function m.intrinsicFunctions(cfg)
-		if config.isOptimizedBuild(cfg) then
+		if cfg.intrinsics ~= nil then
+			if cfg.intrinsics then
+				m.element("IntrinsicFunctions", nil, "true")
+			else
+				m.element("IntrinsicFunctions", nil, "false")
+			end
+		elseif config.isOptimizedBuild(cfg) then
 			m.element("IntrinsicFunctions", nil, "true")
 		end
 	end
-
 
 
 	function m.keyword(prj)
@@ -1614,8 +1688,10 @@
 			if isMakefile then
 				m.element("Keyword", nil, "MakeFileProj")
 			else
-				if isManaged then
+				if isManaged or m.isClrMixed(prj) then
 					m.targetFramework(prj)
+				end
+				if isManaged then
 					m.element("Keyword", nil, "ManagedCProj")
 				else
 					m.element("Keyword", nil, "Win32Proj")
@@ -1692,7 +1768,7 @@
 
 	function m.nmakeCommandLine(cfg, commands, phase)
 		if #commands > 0 then
-			commands = os.translateCommands(commands, p.WINDOWS)
+			commands = os.translateCommandsAndPaths(commands, cfg.project.basedir, cfg.project.location)
 			commands = table.concat(p.esc(commands), p.eol())
 			p.w('<NMake%sCommandLine>%s</NMake%sCommandLine>', phase, commands, phase)
 		end
@@ -1717,6 +1793,13 @@
 	end
 
 
+	function m.windowsSDKDesktopARMSupport(cfg)
+		if cfg.architecture == p.ARM then
+			p.w('<WindowsSDKDesktopARMSupport>true</WindowsSDKDesktopARMSupport>')
+		end
+	end
+
+
 	function m.nmakeOutput(cfg)
 		m.element("NMakeOutput", nil, "$(OutDir)%s", cfg.buildtarget.name)
 	end
@@ -1725,7 +1808,7 @@
 	function m.nmakePreprocessorDefinitions(cfg)
 		if cfg.kind ~= p.NONE and #cfg.defines > 0 then
 			local defines = table.concat(cfg.defines, ";")
-			defines = p.esc(defines) .. ";$(NMakePreprocessorDefinitions)"
+			defines = defines .. ";$(NMakePreprocessorDefinitions)"
 			m.element('NMakePreprocessorDefinitions', nil, defines)
 		end
 	end
@@ -1792,6 +1875,12 @@
 	function m.executablePath(cfg)
 		local dirs = vstudio.path(cfg, cfg.bindirs)
 		if #dirs > 0 then
+			dirs = table.translate(dirs, function(dir)
+				if path.isabsolute(dir) then
+					return dir
+				end
+				return "$(ProjectDir)" .. dir
+			end)
 			m.element("ExecutablePath", nil, "%s;$(ExecutablePath)", table.concat(dirs, ";"))
 		end
 	end
@@ -1840,7 +1929,7 @@
 			if escapeQuotes then
 				defines = defines:gsub('"', '\\"')
 			end
-			defines = p.esc(defines) .. ";%%(PreprocessorDefinitions)"
+			defines = defines .. ";%%(PreprocessorDefinitions)"
 			m.element('PreprocessorDefinitions', condition, defines)
 		end
 	end
@@ -1852,7 +1941,7 @@
 			if escapeQuotes then
 				undefines = undefines:gsub('"', '\\"')
 			end
-			undefines = p.esc(undefines) .. ";%%(UndefinePreprocessorDefinitions)"
+			undefines = undefines .. ";%%(UndefinePreprocessorDefinitions)"
 			m.element('UndefinePreprocessorDefinitions', condition, undefines)
 		end
 	end
@@ -1942,7 +2031,11 @@
 
 
 	function m.resourcePreprocessorDefinitions(cfg)
-		m.preprocessorDefinitions(cfg, table.join(cfg.defines, cfg.resdefines), true)
+		local defines = table.join(cfg.defines, cfg.resdefines)
+		if cfg.exceptionhandling == p.OFF and _ACTION >= "vs2013" then
+			table.insert(defines, "_HAS_EXCEPTIONS=0")
+		end
+		m.preprocessorDefinitions(cfg, defines, true)
 	end
 
 
@@ -1979,7 +2072,13 @@
 	end
 
 	function m.stringPooling(cfg)
-		if config.isOptimizedBuild(cfg) then
+		if cfg.stringpooling ~= nil then
+			if cfg.stringpooling then
+				m.element("StringPooling", nil, "true")
+			else
+				m.element("StringPooling", nil, "false")
+			end
+		elseif config.isOptimizedBuild(cfg) then
 			m.element("StringPooling", nil, "true")
 		end
 	end
@@ -2060,7 +2159,7 @@
 	function m.disableSpecificWarnings(cfg, condition)
 		if #cfg.disablewarnings > 0 then
 			local warnings = table.concat(cfg.disablewarnings, ";")
-			warnings = p.esc(warnings) .. ";%%(DisableSpecificWarnings)"
+			warnings = warnings .. ";%%(DisableSpecificWarnings)"
 			m.element('DisableSpecificWarnings', condition, warnings)
 		end
 	end
@@ -2069,7 +2168,7 @@
 	function m.treatSpecificWarningsAsErrors(cfg, condition)
 		if #cfg.fatalwarnings > 0 then
 			local fatal = table.concat(cfg.fatalwarnings, ";")
-			fatal = p.esc(fatal) .. ";%%(TreatSpecificWarningsAsErrors)"
+			fatal = fatal .. ";%%(TreatSpecificWarningsAsErrors)"
 			m.element('TreatSpecificWarningsAsErrors', condition, fatal)
 		end
 	end

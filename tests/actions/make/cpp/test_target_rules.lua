@@ -4,9 +4,10 @@
 -- Copyright (c) 2009-2013 Jason Perkins and the Premake project
 --
 
+	local p = premake
 	local suite = test.declare("make_cpp_target_rules")
-	local make = premake.make
-	local project = premake.project
+	local make = p.make
+	local project = p.project
 
 
 --
@@ -32,9 +33,9 @@
 	function suite.defaultRules()
 		prepare()
 		test.capture [[
-all: $(TARGETDIR) $(OBJDIR) prebuild prelink $(TARGET)
+all: prebuild prelink $(TARGET)
 	@:
-  		]]
+		]]
 	end
 
 
@@ -47,10 +48,10 @@ all: $(TARGETDIR) $(OBJDIR) prebuild prelink $(TARGET)
 		kind "WindowedApp"
 		prepare()
 		test.capture [[
-all: $(TARGETDIR) $(OBJDIR) prebuild prelink $(TARGET) $(dir $(TARGETDIR))PkgInfo $(dir $(TARGETDIR))Info.plist
+all: prebuild prelink $(TARGET) $(dir $(TARGETDIR))PkgInfo $(dir $(TARGETDIR))Info.plist
 	@:
 
 $(dir $(TARGETDIR))PkgInfo:
 $(dir $(TARGETDIR))Info.plist:
-  		]]
+		]]
 	end

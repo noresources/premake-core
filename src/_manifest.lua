@@ -19,7 +19,13 @@
 		"base/tools.lua",
 		"base/tree.lua",
 		"base/globals.lua",
+		"base/moduledownloader.lua",
 		"base/semver.lua",
+		"base/http.lua",
+		"base/json.lua",
+		"base/jsonwrapper.lua",
+		"base/languages.lua",
+		"base/term.lua",
 
 		-- configuration data
 		"base/field.lua",

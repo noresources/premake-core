@@ -45,6 +45,9 @@ none:
 	@echo "   osx linux"
 
 mingw: $(SRC)
+	$(SILENT) rm -rf ./bin
+	$(SILENT) rm -rf ./build
+	$(SILENT) rm -rf ./obj
 	mkdir -p build/bootstrap
 	$(CC) -o build/bootstrap/premake_bootstrap -DPREMAKE_NO_BUILTIN_SCRIPTS -I"$(LUA_DIR)" $? -lole32
 	./build/bootstrap/premake_bootstrap embed
@@ -52,23 +55,47 @@ mingw: $(SRC)
 	$(MAKE) -C build/bootstrap
 
 osx: $(SRC)
+	$(SILENT) rm -rf ./bin
+	$(SILENT) rm -rf ./build
+	$(SILENT) rm -rf ./obj
 	mkdir -p build/bootstrap
-	$(CC) -o build/bootstrap/premake_bootstrap -DPREMAKE_NO_BUILTIN_SCRIPTS -DLUA_USE_MACOSX -I"$(LUA_DIR)" -framework CoreServices $?
+	$(CC) -o build/bootstrap/premake_bootstrap -DPREMAKE_NO_BUILTIN_SCRIPTS -DLUA_USE_MACOSX -I"$(LUA_DIR)" -framework CoreServices -framework Foundation -framework Security $?
 	./build/bootstrap/premake_bootstrap embed
 	./build/bootstrap/premake_bootstrap --to=build/bootstrap gmake
 	$(MAKE) -C build/bootstrap -j`getconf _NPROCESSORS_ONLN`
 
 linux: $(SRC)
+	$(SILENT) rm -rf ./bin
+	$(SILENT) rm -rf ./build
+	$(SILENT) rm -rf ./obj
 	mkdir -p build/bootstrap
 	$(CC) -o build/bootstrap/premake_bootstrap -DPREMAKE_NO_BUILTIN_SCRIPTS -DLUA_USE_POSIX -DLUA_USE_DLOPEN -I"$(LUA_DIR)" $? -lm -ldl -lrt
 	./build/bootstrap/premake_bootstrap embed
 	./build/bootstrap/premake_bootstrap --to=build/bootstrap gmake
 	$(MAKE) -C build/bootstrap -j`getconf _NPROCESSORS_ONLN`
 
-windows: $(SRC)
+bsd: $(SRC)
+	$(SILENT) rm -rf ./bin
+	$(SILENT) rm -rf ./build
+	$(SILENT) rm -rf ./obj
+	mkdir -p build/bootstrap
+	$(CC) -o build/bootstrap/premake_bootstrap -DPREMAKE_NO_BUILTIN_SCRIPTS -DLUA_USE_POSIX -DLUA_USE_DLOPEN -I"$(LUA_DIR)" $? -lm
+	./build/bootstrap/premake_bootstrap embed
+	./build/bootstrap/premake_bootstrap --to=build/bootstrap gmake
+	$(MAKE) -C build/bootstrap -j`getconf _NPROCESSORS_ONLN`
+
+windows-base: $(SRC)
+	$(SILENT) if exist .\bin rmdir /s /q .\bin
+	$(SILENT) if exist .\build rmdir /s /q .\build
+	$(SILENT) if exist .\obj rmdir /s /q .\obj
 	if not exist build\bootstrap (mkdir build\bootstrap)
-	cl /Fo.\build\bootstrap\ /Fe.\build\bootstrap\premake_bootstrap.exe /DPREMAKE_NO_BUILTIN_SCRIPTS /I"$(LUA_DIR)" user32.lib ole32.lib $**
+	cl /Fo.\build\bootstrap\ /Fe.\build\bootstrap\premake_bootstrap.exe /DPREMAKE_NO_BUILTIN_SCRIPTS /I"$(LUA_DIR)" user32.lib ole32.lib advapi32.lib $**
 	.\build\bootstrap\premake_bootstrap.exe embed
 	.\build\bootstrap\premake_bootstrap --to=build/bootstrap $(MSDEV)
+
+windows: windows-base
 	devenv .\build\bootstrap\Premake5.sln /Upgrade
 	devenv .\build\bootstrap\Premake5.sln /Build Release
+
+windows-msbuild: windows-base
+	msbuild /p:Configuration=Release .\build\bootstrap\Premake5.sln

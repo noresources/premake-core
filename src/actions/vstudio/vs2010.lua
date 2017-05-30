@@ -4,9 +4,9 @@
 -- Copyright (c) 2009-2015 Jason Perkins and the Premake project
 --
 
-	premake.vstudio.vs2010 = {}
-
 	local p = premake
+	p.vstudio.vs2010 = {}
+
 	local vs2010 = p.vstudio.vs2010
 	local vstudio = p.vstudio
 	local project = p.project
@@ -31,7 +31,10 @@
 		["file.basename"]               = { absolute = false, token = "%(Filename)" },
 		["file.abspath"]                = { absolute = true,  token = "%(FullPath)" },
 		["file.relpath"]                = { absolute = false, token = "%(Identity)" },
-		["file.path"]                   = { absolute = true,  token = "%(Identity)" },
+		["file.path"]                   = { absolute = false, token = "%(Identity)" },
+		["file.directory"]              = { absolute = true,  token = "%(RootDir)%(Directory)" },
+		["file.reldirectory"]           = { absolute = false, token = "%(RelativeDir)" },
+		["file.extension"]              = { absolute = false, token = "%(Extension)" },
 	}
 
 
@@ -46,8 +49,8 @@
 		p.indent("  ")
 		p.escaper(vs2010.esc)
 
-		if premake.project.isdotnet(prj) then
-			premake.generate(prj, ".csproj", vstudio.cs2005.generate)
+		if p.project.isdotnet(prj) then
+			p.generate(prj, ".csproj", vstudio.cs2005.generate)
 
 			-- Skip generation of empty user files
 			local user = p.capture(function() vstudio.cs2005.generateUser(prj) end)
@@ -55,8 +58,8 @@
 				p.generate(prj, ".csproj.user", function() p.outln(user) end)
 			end
 
-		elseif premake.project.iscpp(prj) then
-			premake.generate(prj, ".vcxproj", vstudio.vc2010.generate)
+		elseif p.project.isc(prj) or p.project.iscpp(prj) then
+			p.generate(prj, ".vcxproj", vstudio.vc2010.generate)
 
 			-- Skip generation of empty user files
 			local user = p.capture(function() vstudio.vc2010.generateUser(prj) end)
@@ -66,9 +69,20 @@
 
 			-- Only generate a filters file if the source tree actually has subfolders
 			if tree.hasbranches(project.getsourcetree(prj)) then
-				premake.generate(prj, ".vcxproj.filters", vstudio.vc2010.generateFilters)
+				p.generate(prj, ".vcxproj.filters", vstudio.vc2010.generateFilters)
 			end
+		end
 
+		-- Skip generation of empty packages.config files
+		local packages = p.capture(function() vstudio.nuget2010.generatePackagesConfig(prj) end)
+		if #packages > 0 then
+			p.generate(prj, "packages.config", function() p.outln(packages) end)
+		end
+
+		-- Skip generation of empty NuGet.Config files
+		local config = p.capture(function() vstudio.nuget2010.generateNuGetConfig(prj) end)
+		if #config > 0 then
+			p.generate(prj, "NuGet.Config", function() p.outln(config) end)
 		end
 	end
 
@@ -116,7 +130,7 @@
 
 		-- Visual Studio always uses Windows path and naming conventions
 
-		os = "windows",
+		targetos = "windows",
 
 		-- The capabilities of this action
 

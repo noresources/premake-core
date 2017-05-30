@@ -4,9 +4,10 @@
 -- Copyright (c) 2009-2014 Jason Perkins and the Premake project
 --
 
+	local p = premake
 	local suite = test.declare("make_cpp_file_rules")
-	local make = premake.make
-	local project = premake.project
+	local make = p.make
+	local project = p.project
 
 
 --
@@ -16,12 +17,12 @@
 	local wks, prj
 
 	function suite.setup()
-		premake.escaper(make.esc)
+		p.escaper(make.esc)
 		wks = test.createWorkspace()
 	end
 
 	local function prepare()
-		prj = premake.workspace.getproject(wks, 1)
+		prj = p.workspace.getproject(wks, 1)
 		make.cppFileRules(prj)
 	end
 
@@ -36,12 +37,22 @@
 		test.capture [[
 $(OBJDIR)/hello.o: src/greetings/hello.cpp
 	@echo $(notdir $<)
+ifeq (posix,$(SHELLTYPE))
+	$(SILENT) mkdir -p $(OBJDIR)
+else
+	$(SILENT) mkdir $(subst /,\\,$(OBJDIR))
+endif
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/hello1.o: src/hello.cpp
 	@echo $(notdir $<)
+ifeq (posix,$(SHELLTYPE))
+	$(SILENT) mkdir -p $(OBJDIR)
+else
+	$(SILENT) mkdir $(subst /,\\,$(OBJDIR))
+endif
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 
-  		]]
+		]]
 	end
 
 
@@ -55,12 +66,22 @@ $(OBJDIR)/hello1.o: src/hello.cpp
 		test.capture [[
 $(OBJDIR)/hello.o: src/hello.c
 	@echo $(notdir $<)
+ifeq (posix,$(SHELLTYPE))
+	$(SILENT) mkdir -p $(OBJDIR)
+else
+	$(SILENT) mkdir $(subst /,\\,$(OBJDIR))
+endif
 	$(SILENT) $(CC) $(ALL_CFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/test.o: src/test.cpp
 	@echo $(notdir $<)
+ifeq (posix,$(SHELLTYPE))
+	$(SILENT) mkdir -p $(OBJDIR)
+else
+	$(SILENT) mkdir $(subst /,\\,$(OBJDIR))
+endif
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 
-  		]]
+		]]
 	end
 
 

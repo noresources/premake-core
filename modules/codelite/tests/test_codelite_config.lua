@@ -6,7 +6,8 @@
 
 
 	local suite = test.declare("codelite_cproj_config")
-	local codelite = premake.modules.codelite
+	local p = premake
+	local codelite = p.modules.codelite
 
 ---------------------------------------------------------------------------
 -- Setup/Teardown
@@ -15,8 +16,8 @@
 	local wks, prj, cfg
 
 	function suite.setup()
-		_ACTION = "codelite"
-		premake.indent("  ")
+		p.action.set("codelite")
+		p.indent("  ")
 		wks, prj = test.createWorkspace()
 	end
 
@@ -39,12 +40,15 @@
 		exceptionhandling "Off"
 		rtti "Off"
 		pic "On"
-		flags { "Symbols", "NoBufferSecurityCheck", "C++11" }
+		symbols "On"
+		language "C++"
+		cppdialect "C++11"
+		flags { "NoBufferSecurityCheck" }
 		buildoptions { "-opt1", "-opt2" }
 		prepare()
 		codelite.project.compiler(cfg)
 		test.capture [[
-      <Compiler Options="-g;-Og;-fPIC;-fno-exceptions;-fno-stack-protector;-std=c++11;-fno-rtti;-opt1;-opt2" C_Options="-g;-Og;-fPIC;-opt1;-opt2" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" UseDifferentPCHFlags="no" PCHFlags="">
+      <Compiler Options="-O0;-fPIC;-g;-std=c++11;-fno-exceptions;-fno-stack-protector;-fno-rtti;-opt1;-opt2" C_Options="-O0;-fPIC;-g;-opt1;-opt2" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" UseDifferentPCHFlags="no" PCHFlags="">
       </Compiler>
 		]]
 	end
@@ -88,20 +92,16 @@
 		codelite.project.linker(cfg)
 		test.capture [[
       <Linker Required="yes" Options="">
-        <LibraryPath Value="test" />
-        <LibraryPath Value="test2" />
       </Linker>
 		]]
 	end
 
 	function suite.OnProjectCfg_Libs()
-		links { "lib", "lib2" }
+		links { "a", "b" }
 		prepare()
 		codelite.project.linker(cfg)
 		test.capture [[
-      <Linker Required="yes" Options="">
-        <Library Value="lib" />
-        <Library Value="lib2" />
+      <Linker Required="yes" Options="-la;-lb">
       </Linker>
 		]]
 	end
@@ -134,7 +134,7 @@
 		prepare()
 		codelite.project.general(cfg)
 		test.capture [[
-      <General OutputFile="bin/Debug/MyProject.exe" IntermediateDirectory="obj/Debug" Command="bin/Debug/MyProject.exe" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="bin/Debug" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="bin/Debug/MyProject.exe" IntermediateDirectory="obj/Debug" Command="bin/Debug/MyProject.exe" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
 		]]
 	end
 
@@ -220,7 +220,8 @@ cmd2</StartupCommands>
 	end
 
 	function suite.OnProject_Completion()
-		flags { "C++11" }
+		language "C++"
+		cppdialect "C++11"
 		prepare()
 		codelite.project.completion(prj)
 		test.capture [[

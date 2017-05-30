@@ -4,7 +4,8 @@
 -- Copyright (c) 2009-2011 Jason Perkins and the Premake project
 --
 	local suite = test.declare("xcode_project")
-	local xcode = premake.modules.xcode
+	local p = premake
+	local xcode = p.modules.xcode
 
 
 
@@ -19,15 +20,15 @@
 	end
 
 	function suite.setup()
-		_OS = "macosx"
+		_TARGET_OS = "macosx"
 		_ACTION = "xcode4"
-		premake.eol("\n")
+		p.eol("\n")
 		xcode.used_ids = { } -- reset the list of generated IDs
 		wks = test.createWorkspace()
 	end
 
 	local function prepare()
-		wks = premake.oven.bakeWorkspace(wks)
+		wks = p.oven.bakeWorkspace(wks)
 		xcode.prepareWorkspace(wks)
 		local prj = test.getproject(wks, 1)
 		tr = xcode.buildprjtree(prj)
@@ -404,7 +405,7 @@
 		prepare()
 		xcode.PBXGroup(tr)
 
-		local str = premake.captured()
+		local str = p.captured()
 		--test.istrue(str:find('path = "RequiresQuoting%+%+";'))
 
 	end
@@ -1012,7 +1013,7 @@
 
 
 	function suite.XCBuildConfigurationTarget_OnSymbols()
-		flags { "Symbols" }
+		symbols "On"
 		prepare()
 		xcode.XCBuildConfiguration_Target(tr, tr.products.children[1], tr.configs[1])
 		test.capture [[
@@ -1021,6 +1022,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CONFIGURATION_BUILD_DIR = bin/Debug;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_DYNAMIC_NO_PIC = NO;
 				INSTALL_PATH = /usr/local/bin;
 				PRODUCT_NAME = MyProject;
@@ -1124,8 +1126,7 @@
 	end
 
 
-	function suite.XCBuildConfigurationProject_OnOptimize()
-		--flags { "Optimize" }
+	function suite.XCBuildConfigurationProject_OnOptimizeSize()
 		optimize "Size"
 		prepare()
 		xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
@@ -1152,7 +1153,7 @@
 
 
 	function suite.XCBuildConfigurationProject_OnOptimizeSpeed()
-		flags { "OptimizeSpeed" }
+		optimize "Speed"
 		prepare()
 		xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
 		test.capture [[
@@ -1290,6 +1291,36 @@
 		]]
 	end
 
+	function suite.XCBuildConfigurationProject_OnSysIncludeDirs()
+		sysincludedirs { "../include", "../libs", "../name with spaces" }
+		prepare()
+		xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
+		test.capture [[
+		[MyProject:Debug(2)] /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
+				CONFIGURATION_BUILD_DIR = "$(SYMROOT)";
+				CONFIGURATION_TEMP_DIR = "$(OBJROOT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../libs,
+					"\"../name with spaces\"",
+					"$(inherited)",
+				);
+				OBJROOT = obj/Debug;
+				ONLY_ACTIVE_ARCH = NO;
+				SYMROOT = bin/Debug;
+			};
+			name = Debug;
+		};
+		]]
+	end
 
 	function suite.XCBuildConfigurationProject_OnBuildOptions()
 		buildoptions { "build option 1", "build option 2" }
@@ -1380,7 +1411,6 @@
 
 
 	function suite.XCBuildConfigurationProject_OnExtraWarnings()
-		--flags { "ExtraWarnings" }
 		warnings "Extra"
 		prepare()
 		xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
@@ -1464,7 +1494,7 @@
 
 
 	function suite.XCBuildConfigurationProject_OnFloatStrict()
-		flags { "FloatStrict" }
+		floatingpoint "Strict"
 		prepare()
 		xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
 		test.capture [[
@@ -1493,7 +1523,8 @@
 
 
 	function suite.XCBuildConfigurationProject_OnNoEditAndContinue()
-		flags { "Symbols", "NoEditAndContinue" }
+		editandcontinue "Off"
+		symbols "On"
 		prepare()
 		xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
 		test.capture [[
@@ -1631,7 +1662,7 @@
 
 
 	function suite.XCBuildConfigurationProject_OnSymbols()
-		flags { "Symbols" }
+		symbols "On"
 		prepare()
 		xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
 		test.capture [[
@@ -2001,7 +2032,7 @@
 function suite.defaultVisibility_settingIsFound()
 	prepare()
 	xcode.XCBuildConfiguration(tr)
-	local str = premake.captured()
+	local str = p.captured()
 	test.istrue(str:find('GCC_SYMBOLS_PRIVATE_EXTERN'))
 end
 
@@ -2009,23 +2040,23 @@ end
 function suite.defaultVisibilitySetting_setToNo()
 	prepare()
 	xcode.XCBuildConfiguration(tr)
-	local str = premake.captured()
+	local str = p.captured()
 	test.istrue(str:find('GCC_SYMBOLS_PRIVATE_EXTERN = NO;'))
 end
 
 function suite.releaseBuild_onlyDefaultArch_equalsNo()
-	flags { "Optimize" }
+	optimize "On"
 	prepare()
 	xcode.XCBuildConfiguration_Project(tr, tr.configs[2])
-	local str = premake.captured()
+	local str = p.captured()
 	test.istrue(str:find('ONLY_ACTIVE_ARCH = NO;'))
 end
 
 function suite.debugBuild_onlyDefaultArch_equalsYes()
-	flags { "Symbols" }
+	symbols "On"
 	prepare()
 	xcode.XCBuildConfiguration_Project(tr, tr.configs[1])
 
-	local str = premake.captured()
+	local str = p.captured()
 	test.istrue(str:find('ONLY_ACTIVE_ARCH = YES;'))
 end

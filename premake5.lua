@@ -94,7 +94,8 @@
 		configurations { "Release", "Debug" }
 		location ( _OPTIONS["to"] )
 
-		flags { "No64BitChecks", "ExtraWarnings", "StaticRuntime", "MultiProcessorCompile" }
+		flags { "No64BitChecks", "StaticRuntime", "MultiProcessorCompile" }
+		warnings "Extra"
 
 		if not _OPTIONS["no-zlib"] then
 			defines { "PREMAKE_COMPRESSION" }
@@ -136,7 +137,7 @@
 		end
 		if not _OPTIONS["no-curl"] then
 			includedirs { "contrib/curl/include" }
-			links { "curl-lib", "mbedtls-lib" }
+			links { "curl-lib" }
 		end
 
 		files
@@ -159,7 +160,7 @@
 			targetdir   "bin/release"
 
 		filter "system:windows"
-			links       { "ole32", "ws2_32" }
+			links       { "ole32", "ws2_32", "advapi32" }
 
 		filter "system:linux or bsd or hurd"
 			defines     { "LUA_USE_POSIX", "LUA_USE_DLOPEN" }
@@ -169,9 +170,14 @@
 		filter "system:linux or hurd"
 			links       { "dl", "rt" }
 
+		filter { "system:not windows", "system:not macosx" }
+			if not _OPTIONS["no-curl"] then
+				links   { "mbedtls-lib" }
+			end
+
 		filter "system:macosx"
 			defines     { "LUA_USE_MACOSX" }
-			links       { "CoreServices.framework" }
+			links       { "CoreServices.framework", "Foundation.framework", "Security.framework" }
 
 		filter { "system:macosx", "action:gmake" }
 			toolset "clang"
