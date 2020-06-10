@@ -312,7 +312,7 @@
 		local rpaths = {}
 
 		-- User defined runpath search paths
-		for _, fullpath in ipairs(cfg.runpathdirs) do
+		for _, fullpath in ipairs(dirs) do
 			local rpath = path.getrelative(cfg.buildtarget.directory, fullpath)
 			if not (table.contains(rpaths, rpath)) then
 				table.insert(rpaths, rpath)
