@@ -299,10 +299,20 @@
 
 --
 -- Return a list of decorated rpaths
+-- 
+-- @param cfg
+--    The configuration to query.
+-- @param dirs
+--    List of absolute paths
+-- @param mode
+--    Output mode
+--    - "linker" (default) Linker rpath instructions
+--    - "patn" List of path relative to configuration target directory
 --
 
-	function gcc.getrunpathdirs(cfg, dirs)
+	function gcc.getrunpathdirs(cfg, dirs, mode)
 		local result = {}
+		mode = iif (mode == nil, "linker", mode)
 
 		if not (table.contains(os.getSystemTags(cfg.system), "darwin")
 				or (cfg.system == p.LINUX)) then
@@ -338,7 +348,11 @@
 				rpath = "$$ORIGIN" .. rpath
 			end
 
-			table.insert(result, "-Wl,-rpath,'" .. rpath .. "'")
+			if mode == "linker" then 
+				rpath = "-Wl,-rpath,'" .. rpath .. "'"
+			end
+			
+			table.insert(result, rpath)
 		end
 
 		return result
