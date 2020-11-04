@@ -674,6 +674,20 @@
 		test.contains("-L/usr/local/lib", gcc.getLibraryDirectories(cfg))
 	end
 
+	function suite.libDirs_macosx_onFrameworkDirs()
+		system "MacOSX"
+		frameworkdirs { "/Users/PremakeDefeloper/Library/Frameworks" }
+		prepare()
+		test.contains("-F/Users/PremakeDefeloper/Library/Frameworks", gcc.getLibraryDirectories(cfg))
+	end
+
+	function suite.includeDirs_macosx_onFrameworkDirs()
+		system "MacOSX"
+		frameworkdirs { "/Users/PremakeDefeloper/Library/Frameworks" }
+		prepare()
+		test.contains("-F/Users/PremakeDefeloper/Library/Frameworks", gcc.getincludedirs(cfg, nil, nil, cfg.frameworkdirs))
+	end
+
 
 --
 -- Check handling of link time optimization flag.
