@@ -62,7 +62,7 @@
 		return dirs
 	end
 
-	local function get_library_search_path()
+	function os.libdirs()
 		local path
 		if os.istarget("windows") then
 			path = os.getenv("PATH") or ""
@@ -107,7 +107,7 @@
 		-- libname: library name with or without prefix and suffix
 		-- libdirs: (array or string): A set of additional search paths
 
-		local path = get_library_search_path()
+		local path = os.libdirs()
 		local formats
 
 		-- assemble a search path, depending on the platform
@@ -152,7 +152,7 @@
 		-- headerpath: a partial header file path
 		-- headerdirs: additional header search paths
 
-		local path = get_library_search_path()
+		local path = os.libdirs()
 
 		-- replace all /lib by /include
 		path = path .. ':'
