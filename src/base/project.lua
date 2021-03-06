@@ -176,12 +176,28 @@
 			return result
 		end
 
-			local function add_to_project_list(cfg, depproj, result)
-				local dep = p.workspace.findproject(cfg.workspace, depproj)
-					if dep and not table.contains(result, dep) then
-						table.insert(result, dep)
+		local function add_to_project_list(cfg, depproj, group, result)
+			local dep = p.workspace.findproject(cfg.workspace, depproj)
+		
+			if (not dep) and group then
+				local tr = p.workspace.grouptree(cfg.workspace)
+				tree.traverse(tr, {
+					onbranch = function(n)
+						if n.path ~= depproj then return end
+						for i, c in pairs(n.children) do
+							if type (i) == "string" and c.project then
+								add_to_project_list (cfg, i, false, result)
+							end
+						end
 					end
+				}) 
+				return
 			end
+							
+			if dep and not table.contains(result, dep) then
+				table.insert(result, dep)
+			end
+		end
 
 		local linkOnly = m == 'linkOnly'
 		local depsOnly = m == 'dependOnly'
@@ -191,13 +207,13 @@
 			if not depsOnly then
 				for _, link in ipairs(cfg.links) do
 					if link ~= prj.name then
-						add_to_project_list(cfg, link, result)
+						add_to_project_list(cfg, link, false, result)
 					end
 				end
 			end
 				if not linkOnly then
 					for _, depproj in ipairs(cfg.dependson) do
-						add_to_project_list(cfg, depproj, result)
+						add_to_project_list(cfg, depproj, true, result)
 					end
 				end
 			end
