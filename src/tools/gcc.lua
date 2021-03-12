@@ -307,7 +307,7 @@
 -- @param mode
 --    Output mode
 --    - "linker" (default) Linker rpath instructions
---    - "patn" List of path relative to configuration target directory
+--    - "path" List of path relative to configuration target directory
 --
 
 	function gcc.getrunpathdirs(cfg, dirs, mode)
