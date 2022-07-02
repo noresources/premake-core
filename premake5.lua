@@ -98,6 +98,11 @@
 		_OPTIONS["curl-src"] = "none"
 	end
 
+newoption {
+		trigger = "no-uuid",
+		description = "Disable use of libuuid",
+		default = (os.findlib("uuid") == nil)
+	}
 
 	newoption {
 		trigger = "zlib-src",
@@ -330,7 +335,8 @@
 			defines     { "LUA_USE_MACOSX" }
 			links       { "CoreServices.framework", "Foundation.framework", "Security.framework", "readline" }
 
-		filter { "system:linux", "toolset:not cosmocc" }
+		filter { "system:linux", "toolset:not cosmocc or options:not no-uuid" }
+			defines { "PREMAKE_UUID" }
 			links		{ "uuid" }
 
 		filter { "system:macosx", "action:gmake" }
