@@ -204,6 +204,15 @@
 
 			local o, e = os.outputof ("ls " .. cwd .. "/base", "error")
 			test.istrue(o == nil or #o == 0)
+			
+			local invalidcmd = "osnasb_hkjs-pabji"
+			-- Assumes that "osnasb_hkjs-pabji" command does not exists. 
+			local _, e, mode, oe = os.outputof (invalidcmd, "error")
+
+			test.istrue(type(oe) == "string")
+			test.istrue (e ~= 0)
+			local f, t = string.find (oe, "not found")
+			test.istrue(f ~= nil)
 		end
 	end
 
