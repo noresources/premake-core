@@ -497,15 +497,15 @@
 		local pipe = io.popen(cmd .. redirection)
 		local result = pipe:read('*a')
 		local success, what, code = pipe:close()
-		if success then
-			-- chomp trailing newlines
-			if result then
-				result = string.gsub(result, "[\r\n]+$", "")
-			end
+		-- chomp trailing newlines
+		if result then
+			result = string.gsub(result, "[\r\n]+$", "")
+		end
 
+		if success then
 			return result, code, what
 		else
-			return nil, code, what
+			return nil, code, what, result
 		end
 	end
 
