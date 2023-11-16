@@ -118,12 +118,15 @@ int getversion(struct OsVersionInfo* info)
 
 int getversion(struct OsVersionInfo* info)
 {
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1060
 	const char * propertyListFilePath = "/System/Library/CoreServices/SystemVersion.plist";
 	Boolean fallback = TRUE;
+#endif
 
 	info->description = "Mac OS";
 	info->majorversion = 10;
 
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1060
 	if (access (propertyListFilePath, R_OK) == 0)
 	{
 		CFPropertyListFormat format;
@@ -209,6 +212,7 @@ getversion_macosx_cleanup:
 	}
 
 	if (fallback == TRUE)
+#endif
 	{
 		int mib[] = { CTL_KERN, KERN_OSRELEASE };
 		size_t len;
