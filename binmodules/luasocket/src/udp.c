@@ -23,6 +23,10 @@
 #define MAX(x, y) ((x) > (y) ? x : y)
 #endif
 
+#ifndef AI_NUMERICSERV
+#define AI_NUMERICSERV (0)
+#endif
+
 /*=========================================================================*\
 * Internal function prototypes
 \*=========================================================================*/
