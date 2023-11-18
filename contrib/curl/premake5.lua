@@ -24,6 +24,9 @@ project "curl-lib"
 	filter { "system:macosx" }
 		defines { "USE_SECTRANSP" }
 
+	filter { "system:macosx", "options:not no-darwinssl" }
+		defines { "USE_DARWINSSL" }
+
 	filter { "system:not windows", "system:not macosx" }
 		defines { "USE_MBEDTLS" }
 
