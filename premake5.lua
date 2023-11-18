@@ -130,6 +130,16 @@ newoption {
 	end
 
 	newoption {
+		trigger = "apple-secure-transport",
+		allowed = {
+			{"yes", "Yes"},
+			{"no", "No"}
+		},
+		default = "yes",
+		description = "Disable DarwinSSL support in curl"
+	}
+
+	newoption {
 		trigger = "no-luasocket",
 		description = "Disable Luasocket 3rd party lib"
 	}
