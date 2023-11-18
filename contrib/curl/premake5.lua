@@ -22,7 +22,7 @@ project "curl-lib"
 		defines { "USE_SCHANNEL", "USE_WINDOWS_SSPI" }
 		links { "crypt32", "bcrypt" }
 
-	filter { "system:macosx" }
+	filter { "system:macosx", "options:apple-secure-transport=yes" }
 		defines { "USE_SECTRANSP" }
 
 	filter { "system:not windows", "system:not macosx" }
