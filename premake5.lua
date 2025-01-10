@@ -101,7 +101,7 @@
 newoption {
 		trigger = "no-uuid",
 		description = "Disable use of libuuid",
-		default = (os.findlib("uuid") == nil)
+		default = ((os.findlib("uuid") == nil) or (os.findheader("uuid/uuid.h") == nil))
 	}
 
 	newoption {
