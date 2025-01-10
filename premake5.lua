@@ -336,7 +336,7 @@ newoption {
 			defines     { "LUA_USE_MACOSX" }
 			links       { "CoreServices.framework", "Foundation.framework", "Security.framework", "readline" }
 
-		filter { "system:linux", "toolset:not cosmocc or options:not no-uuid" }
+		filter { "system:linux", "toolset:not cosmocc", "options:not no-uuid" }
 			defines { "PREMAKE_UUID" }
 			links		{ "uuid" }
 
