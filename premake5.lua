@@ -98,11 +98,15 @@
 		_OPTIONS["curl-src"] = "none"
 	end
 
-local nouuiddefault = ((os.findlib("uuid") == nil) or (os.findheader("uuid/uuid.h") == nil))
+local uuiddefault = ((os.findlib("uuid") ~= nil) and (os.findheader("uuid/uuid.h") ~= nil))
 newoption {
-		trigger = "no-uuid",
-		description = "Disable uuid 3rd party library (Library " .. (iif(nouuiddefault, "disabled", "enabled")) .. " by default on this host)",
-		default = nouuiddefault
+		trigger = "use-uuid",
+		description = "Disable uuid 3rd party library (Library " .. (iif(uuiddefault, "enabled", "disabled")) .. " by default on this host)",
+		default = iif(uuiddefault, "yes", "no"),
+		allowed = {
+			{"yes", "Enable uuid library"},
+			{ "no", "Diable uuid library" }
+		}
 	}
 
 	newoption {
@@ -336,7 +340,7 @@ newoption {
 			defines     { "LUA_USE_MACOSX" }
 			links       { "CoreServices.framework", "Foundation.framework", "Security.framework", "readline" }
 
-		filter { "system:linux", "toolset:not cosmocc", "options:not no-uuid" }
+		filter { "system:linux", "toolset:not cosmocc", "options:use-uuid=yes"}
 			defines { "PREMAKE_UUID" }
 			links		{ "uuid" }
 
