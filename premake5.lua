@@ -98,10 +98,11 @@
 		_OPTIONS["curl-src"] = "none"
 	end
 
+local nouuiddefault = ((os.findlib("uuid") == nil) or (os.findheader("uuid/uuid.h") == nil))
 newoption {
 		trigger = "no-uuid",
-		description = "Disable use of libuuid",
-		default = ((os.findlib("uuid") == nil) or (os.findheader("uuid/uuid.h") == nil))
+		description = "Disable uuid 3rd party library (Library " .. (iif(nouuiddefault, "disabled", "enabled")) .. " by default on this host)",
+		default = nouuiddefault
 	}
 
 	newoption {
