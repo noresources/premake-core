@@ -635,7 +635,7 @@
 
 		if platform then
 			system = p.api.checkValue(p.fields.system, platform) or system
-			architecture = p.api.checkValue(p.fields.architecture, platform) or architecture
+			architecture = p.api.checkValue(p.fields.architecture, p.fields.architecture.aliases[platform] or platform) or architecture
 			toolset = p.api.checkValue(p.fields.toolset, platform) or toolset
 		end
 
