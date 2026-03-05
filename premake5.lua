@@ -204,6 +204,8 @@ newoption {
 		default = nil,
 	}
 
+	include "premake5/options.lua"
+
 --
 -- Define the project. Put the release configuration first so it will be the
 -- default when folks build using the makefile. That way they don't have to

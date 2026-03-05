@@ -2,7 +2,7 @@ project "curl-lib"
 	language    "C"
 	kind        "StaticLib"
 	externalincludedirs { "include" }
-	includedirs { "lib", "../mbedtls/include" }
+	includedirs { "lib" }
 	defines     { "BUILDING_LIBCURL", "CURL_STATICLIB", "HTTP_ONLY" }
 	warnings    "off"
 
@@ -12,6 +12,8 @@ project "curl-lib"
 		"**.c"
 	}
 
+	filter { "options:not mbedtls-src=none" }
+		externalincludedirs { _OPTIONS["mbedtls-src"] .. "/include" }
 	filter { "options:not zlib-src=none" }
 		defines     { 'USE_ZLIB' }
 
@@ -25,7 +27,7 @@ project "curl-lib"
 	filter { "system:macosx", "options:apple-secure-transport=yes" }
 		defines { "USE_SECTRANSP" }
 
-	filter { "system:not windows", "system:not macosx" }
+	filter { "system:not windows", "system:not macosx", "options:not mbedtls-src=none" }
 		defines { "USE_MBEDTLS" }
 
 	filter { "system:linux or toolset:cosmocc"}
